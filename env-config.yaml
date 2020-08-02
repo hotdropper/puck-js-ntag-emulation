@@ -1,0 +1,11 @@
+# Port where mcu device is located
+port: /dev/tty.usbserial-A50285BI
+
+# ESP32 after flash has 115200 speed.
+port_speed: 9600
+
+board: PUCKJS
+
+reset_before_send: false
+minification_level: ESPRIMA
+module_minification_level: ESPRIMA

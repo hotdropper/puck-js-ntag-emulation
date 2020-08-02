@@ -1,0 +1,22 @@
+{
+  "name": "puck-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "espruino"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@puckjs/utils": "^2.2.0",
+    "@types/espruino": "^1.94.3",
+    "espruino": "^0.1.31",
+    "gulp": "^3.9.1",
+    "gulp-typescript": "^3.2.3",
+    "js-yaml": "^3.10.0",
+    "lodash": "^4.17.4",
+    "typescript": "^2.6.2"
+  }
+}

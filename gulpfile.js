@@ -47,9 +47,9 @@ gulp.task("compile-ts", ["gen-config-ts"], function () {
     return tsResult.js.pipe(gulp.dest(distDir));
 });
 
-gulp.task("content-to-dist", () => {
+gulp.task("original-to-dist", () => {
     return gulp
-        .src("src/**/*.js", { base: 'src' })
+        .src("src/original-ntag/**/*.js", { base: 'src' })
         .pipe(gulp.dest(distDir));
 });
 

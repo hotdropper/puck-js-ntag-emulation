@@ -1,5 +1,5 @@
 const storage = require("Storage");
-const debug = require('./debug');
+const debug = require('./debug.js');
 class NTagBin {
     constructor(filename) {
         this.filename = filename;

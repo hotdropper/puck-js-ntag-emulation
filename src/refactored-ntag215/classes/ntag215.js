@@ -1,5 +1,5 @@
-const NTagBin = require('./ntagbin');
-const ByteTools = require('./byte-tools');
+const NTagBin = require('./ntagbin.js');
+const ByteTools = require('./byte-tools.js');
 
 // much of this is pulled from https://www.nxp.com/docs/en/data-sheet/NTAG213_215_216.pdf
 

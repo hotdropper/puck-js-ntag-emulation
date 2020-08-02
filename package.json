@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "espruino"
+    "start": "espruino",
+    "build-original": "espruino --board PUCKJS --config PRETOKENISE=true --config MINIFICATION_LEVEL=ESPRIMA -m -o dist/original-ntag.js src/original-ntag/app.js",
+    "build-refactor": "espruino --board PUCKJS --config PRETOKENISE=true --config MINIFICATION_LEVEL=ESPRIMA -m -o dist/refactored-ntag215.js src/refactored-ntag215/app.js"
   },
   "keywords": [],
   "author": "",

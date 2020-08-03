@@ -1,0 +1,4 @@
+inherit: espruino
+espruino:
+  config:
+    PRETOKENISE: true

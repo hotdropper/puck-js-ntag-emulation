@@ -1,11 +1,22 @@
 # Port where mcu device is located
-port: /dev/tty.usbserial-A50285BI
+espruino:
+  port: /dev/tty.usbserial-A50285BI
+  baud: 9600
+  board: PUCKJS
+webpack:
+  mode: production
+  devtool: false
+  output:
+    libraryTarget: jsonp
+dest: dist
+rollup:
 
-# ESP32 after flash has 115200 speed.
-port_speed: 9600
-
-board: PUCKJS
-
-reset_before_send: false
-minification_level: ESPRIMA
-module_minification_level: ESPRIMA
+babel:
+  presets:
+  - 'babel-preset-espruino'
+  plugins:
+  -
+    - module-resolver
+    - root: [ ./src ]
+      alias:
+        '#test': './src/test'

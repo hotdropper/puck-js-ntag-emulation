@@ -1,105 +1,101 @@
 const gulp = require('gulp');
-const ts = require('gulp-typescript');
-const tsProject = ts.createProject('tsconfig.json');
-const fs = require("fs");
-const { fork } = require('child_process');
-const path = require("path");
-const yaml = require("js-yaml");
-const _ = require("lodash");
+const minimist = require('minimist');
+const fs = require('fs');
+const yaml = require('js-yaml');
+const exec = require('child_process').exec;
+// const webpack = require('webpack-stream');
+const _ = require('lodash');
+const babel = require('gulp-babel');
+const rollup = require('gulp-rollup');
 
-const envConfig = yaml.load(fs.readFileSync("env-config.yaml"));
+let config = {
+};
 
-const distDir = "./dist";
-const srcDir = "./src";
-const espReadyBundleFileName = "bundle.js";
-const espReadyBundlePath = path.join(distDir, espReadyBundleFileName);
-const appFileName = "app.js";
-const appFilePath = path.join(distDir, appFileName);
-const appConfigTsFileName = "app-config.ts";
-const appConfigFileName = "app-config.yaml";
-const userAppConfigFileName = "app-config.user.yaml";
-const espConsoleBeingWatchedFileName = "esp-console-input.js";
-const espConsoleBeingWatchedFilePath = path.join(distDir, espConsoleBeingWatchedFileName);
+config = _.merge(config, yaml.safeLoad(fs.readFileSync('./env-config.yaml').toString()));
 
-gulp.task("build", ["prepare-for-espruino"]);
+const knownOptions = {
+  string: 'target',
+  default: { target: 'test' }
+};
 
-gulp.task("prepare-for-espruino", ['compile-ts', 'content-to-dist'], (cb) => {
-    if (!fs.existsSync(appFilePath)) {
-        cb("main app file does not exit " + appFilePath);
-        return;
+let options = minimist(process.argv.slice(2), knownOptions);
+
+function layerTargetConfig(target, cfg) {
+  const envConfigFile = `./etc/targets/${target}.yaml`;
+  if (fs.existsSync(envConfigFile)) {
+    const envConfig = yaml.safeLoad(fs.readFileSync(envConfigFile).toString());
+    if (envConfig.inherit) {
+      cfg = layerTargetConfig(envConfig.inherit, cfg);
     }
+    cfg = _.merge(cfg, envConfig);
+  }
 
-    let appContent = fs.readFileSync(appFilePath).toString();
-    appContent = appContent.replace('Object.defineProperty(exports, "__esModule", { value: true });', "");
-    fs.writeFileSync(appFilePath, appContent);
+  return cfg;
+}
 
-    const buildproc = fork(
-        require.resolve("espruino/bin/espruino-cli"),
-        ["--board", envConfig.board, appFileName, "-o", espReadyBundleFileName],
-        { cwd: distDir });
-    buildproc.on('close', (code) => {
-        cb();
+config = layerTargetConfig(options.target, config);
+//
+// gulp.task('babel', () => {
+//   return gulp.src(config.src)
+//       .pipe(babel(config.babel))
+//       .pipe(gulp.dest(config.dest + '/babelified-' + options.target));
+// });
+//
+// gulp.task('webpack', () => {
+//   return gulp.src(config.src)
+//       .pipe(webpack(config.webpack))
+//       .pipe(gulp.dest(config.dest + '/wp-' + options.target));
+// });
+
+gulp.task('rollup', () => {
+  return gulp.src(`./src/${options.target}/**/*.js`, { base: `./src/${options.target}` })
+      // transform the files here.
+      .pipe(rollup({
+        input: `./src/${options.target}/app.js`,
+        output: {
+          format: 'cjs'
+        },
+      }))
+      .pipe(babel(config.babel))
+      .pipe(gulp.dest('./dist/' + options.target));
+})
+
+gulp.task('upload', (cb) => {
+  const outFile = config.dest + '/' + options.target + '/app.js';
+  const args = [];
+  Object.keys(config.espruino.config).forEach((name) => {
+    args.push('--config');
+    args.push(`${name}=${JSON.stringify(config.espruino.config[name])}`);
+  });
+
+  if (config.espruino.port) {
+    args.push('-p ' + config.espruino.port);
+  }
+
+  if (config.espruino.baud) {
+    args.push('-b ' + config.espruino.baud);
+  }
+
+  if (config.espruino.board) {
+    args.push('--board ' + config.espruino.board);
+  }
+
+  const argString = args.join(' ');
+
+  const cmd = `npx espruino ${argString} ${outFile}`;
+  try {
+    exec(cmd, (err, stdout, stderr) => {
+      console.log(err);
+      console.log(stdout);
+      console.log(stderr);
+
+      cb(err);
     });
+  } catch (e) {
+    console.log(e);
+  }
 });
 
-gulp.task("compile-ts", ["gen-config-ts"], function () {
-    const tsResult = tsProject.src().pipe(tsProject());
-    return tsResult.js.pipe(gulp.dest(distDir));
-});
 
-gulp.task("original-to-dist", () => {
-    return gulp
-        .src("src/original-ntag/**/*.js", { base: 'src' })
-        .pipe(gulp.dest(distDir));
-});
+gulp.task('default', gulp.series(['rollup', 'upload']));
 
-gulp.task("send-to-espurino-console", (cb) => {
-    const content = fs.readFileSync(espReadyBundlePath);
-    fs.writeFile(
-        espConsoleBeingWatchedFilePath,
-        content,
-        (err) => {
-            if (err) { throw err; }
-            cb();
-        });
-});
-
-gulp.task("clear-espurino-watch-file", (cb) => {
-    fs.writeFile(
-        espConsoleBeingWatchedFilePath,
-        "",
-        (err) => {
-            if (err) { throw err; }
-            cb();
-        });
-});
-
-gulp.task("espruino-console", ["clear-espurino-watch-file"], (cb) => {
-    const buildproc = fork(
-        require.resolve("espruino/bin/espruino-cli"),
-        ["--board", envConfig.board, "-b", envConfig.port_speed, "--port", envConfig.port, "-w", espConsoleBeingWatchedFileName],
-        { cwd: distDir });
-    buildproc.on('close', (code) => {
-        cb();
-    });
-});
-
-gulp.task("gen-config-ts", (cb) => {
-    if (!fs.existsSync(userAppConfigFileName)) {
-        const content = fs.readFileSync(appConfigFileName)
-            .toString()
-            .split("\n")
-            .map(x => `# ${x}`)
-            .join("\n");
-
-        fs.writeFileSync(userAppConfigFileName, content, { encoding: "utf-8" });
-    }
-
-    const appConfig = yaml.load(fs.readFileSync(appConfigFileName));
-    const userAppConfig = yaml.load(fs.readFileSync(userAppConfigFileName));
-    const mergedAppConfig = _.assign(appConfig, userAppConfig);
-    const jsonString = JSON.stringify(mergedAppConfig);
-    const resultConfigTsContent = `export default ${jsonString};`;
-    fs.writeFileSync(path.join(srcDir, appConfigTsFileName), resultConfigTsContent);
-    cb();
-});

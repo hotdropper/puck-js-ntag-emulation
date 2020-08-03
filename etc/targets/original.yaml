@@ -1,0 +1,5 @@
+inherit: espruino_performance
+webpack:
+  output:
+    filename: original.bundle.js
+src: src/original/app.js

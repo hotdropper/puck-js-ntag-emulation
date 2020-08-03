@@ -1,0 +1,5 @@
+espruino:
+  config:
+    SET_TIME_ON_WRITE: true
+    SAVE_STORAGE_FILE: myapp
+    LOAD_STORAGE_FILE: 2

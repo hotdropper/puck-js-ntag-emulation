@@ -1,0 +1,5 @@
+inherit: espruino
+webpack:
+  output:
+    filename: test.bundle.js
+src: [src/test/*]

@@ -1,0 +1,6 @@
+inherit: espruino
+espruino:
+  config:
+    MINIFICATION_Mangle: false
+    MODULE_MERGE: false
+    MODULE_MINIFICATION_LEVEL: false

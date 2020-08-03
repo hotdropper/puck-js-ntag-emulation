@@ -34,16 +34,16 @@ function NFCTag(data) {
     this.filename = "tag.bin";
     this.led = [LED1];
 
-    var self = this;
+    const self = this;
 
     NRF.on('NFCon', function() {
-        for (var i = 0; i<self.led.length; i++) {
+        for (let i = 0; i<self.led.length; i++) {
             digitalWrite(self.led[i], 1);
         }
     });
 
     NRF.on('NFCoff', function() {
-        for (var i = 0; i<self.led.length; i++) {
+        for (let i = 0; i<self.led.length; i++) {
             digitalWrite(self.led[i], 0);
         }
 
@@ -64,7 +64,7 @@ function NFCTag(data) {
         }
     });
 
-    NRF.on('NFCrx', (rx) => {
+    NRF.on('NFCrx', function(rx) {
         if (rx && self._callbacks[rx[0]]) {
             self._callbacks[rx[0]](rx, self);
         } else {
@@ -75,8 +75,8 @@ function NFCTag(data) {
 
 NFCTag.prototype = {
     _fixUid: function() {
-        var bcc0 = this._data[0] ^ this._data[1] ^ this._data[2] ^ 0x88;
-        var bcc1 = this._data[4] ^ this._data[5] ^ this._data[6] ^ this._data[7];
+        const bcc0 = this._data[0] ^ this._data[1] ^ this._data[2] ^ 0x88;
+        const bcc1 = this._data[4] ^ this._data[5] ^ this._data[6] ^ this._data[7];
 
         if (this._data[3] !== bcc0 || this._data[8] !== bcc1) {
             this._data[3] = bcc0;
@@ -90,10 +90,10 @@ NFCTag.prototype = {
         return false;
     },
     _getLockedPages: function() {
-        var locked = [0, 1];
+        const locked = [0, 1];
 
         // Static Lock Bytes
-        for (var bit = 0; bit < 8; bit++) {
+        for (let bit = 0; bit < 8; bit++) {
             if (this._data[11] & (1 << bit)) {
                 locked.push(bit + 8);
             }
@@ -114,35 +114,35 @@ NFCTag.prototype = {
 
         if (!this.authenticated) {
             // Dynamic Lock Bytes
-            if (this._data[520] & 0b00000001 > 0) {
+            if (this._data[520] & 1 > 0) {
                 locked.push(16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
             }
 
-            if (this._data[520] & 0b00000010 > 0) {
+            if (this._data[520] & 2 > 0) {
                 locked.push(32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47);
             }
 
-            if (this._data[520] & 0b00000100 > 0) {
+            if (this._data[520] & 4 > 0) {
                 locked.push(48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63);
             }
 
-            if (this._data[520] & 0b00001000 > 0) {
+            if (this._data[520] & 8 > 0) {
                 locked.push(64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79);
             }
 
-            if (this._data[520] & 0b00010000 > 0) {
+            if (this._data[520] & 16 > 0) {
                 locked.push(80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95);
             }
 
-            if (this._data[520] & 0b00100000 > 0) {
+            if (this._data[520] & 32 > 0) {
                 locked.push(96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111);
             }
 
-            if (this._data[520] & 0b01000000 > 0) {
+            if (this._data[520] & 64 > 0) {
                 locked.push(112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127);
             }
 
-            if (this._data[520] & 0b10000000 > 0) {
+            if (this._data[520] & 128 > 0) {
                 locked.push(128, 129);
             }
         }
@@ -202,13 +202,13 @@ NFCTag.prototype = {
             }
 
             //calculate block index
-            var idx = rx[1] * 4;
+            const idx = rx[1] * 4;
 
             //store data if it fits into memory
             if (idx > self._data.length) {
                 NRF.nfcSend(0x00);
             } else {
-                var view = new Uint8Array(rx, 2, 4);
+                const view = new Uint8Array(rx, 2, 4);
                 self._data.set(view, idx);
                 NRF.nfcSend(0x0A);
             }
@@ -245,10 +245,10 @@ NFCTag.prototype = {
         0x88: function restartNfc(rx, self) {
             self.setData(self._data);
         },
-        0x1a: function keepAlive(rx) {
+        0x1a: function keepAlive() {
             NRF.nfcSend();
         },
-        0x93: function keepAlive(rx) {
+        0x93: function keepAlive() {
             NRF.nfcSend();
         },
     },
@@ -263,14 +263,14 @@ NFCTag.prototype = {
         this._fixUid();
 
         //re-start
-        var header = NRF.nfcStart(new Uint8Array([data[0], data[1], data[2], data[4], data[5], data[6], data[7]]));
+        NRF.nfcStart(new Uint8Array([data[0], data[1], data[2], data[4], data[5], data[6], data[7]]));
     },
-    getData: function() { return this._data; },
+    getData: function() { return this._data; }
 };
 
-var tags = (function() {
-    var storage = require("Storage");
-    var data = [
+const tags = (function() {
+    const storage = require("Storage");
+    const data = [
         { led: [LED1] },
         { led: [LED1, LED2] },
         { led: [LED2] },
@@ -278,14 +278,14 @@ var tags = (function() {
         { led: [LED3] }
     ];
 
-    for (var i = 0; i < data.length; i++) {
+    for (let i = 0; i < data.length; i++) {
         data[i].filename = "tag" + i + ".bin";
 
-        var buffer = storage.readArrayBuffer(data[i].filename);
+        const buffer = storage.readArrayBuffer(data[i].filename);
 
         if (buffer) {
-            var output = new Uint8Array(buffer.length);
-            for (var buffPos = 0; buffPos < buffer.length; buffPos++) {
+            const output = new Uint8Array(buffer.length);
+            for (let buffPos = 0; buffPos < buffer.length; buffPos++) {
                 output[buffPos] = buffer[buffPos];
             }
 
@@ -299,9 +299,9 @@ var tags = (function() {
 })();
 
 
-var currentTag = 0;
+let currentTag = 0;
 
-var tag = new NFCTag(tags[currentTag].buffer);
+let tag = new NFCTag(tags[currentTag].buffer);
 tag.filename = tags[currentTag].filename;
 
 setWatch(function() {
@@ -318,12 +318,12 @@ setWatch(function() {
     LED2.write(0);
     LED3.write(0);
 
-    for (var i = 0; i<tag.led.length; i++) {
+    for (let i = 0; i<tag.led.length; i++) {
         digitalWrite(tag.led[i], 1);
     }
 
-    setTimeout(() => {
-        for (var i = 0; i<tag.led.length; i++) {
+    setTimeout(function() {
+        for (let i = 0; i<tag.led.length; i++) {
             digitalWrite(tag.led[i], 0);
         }
 

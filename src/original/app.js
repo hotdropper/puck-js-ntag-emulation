@@ -25,7 +25,57 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+const Storage = require("Storage");
+
 let dbg = false;
+let trackNf = false;
+let nfLog = [];
+let nfCount = 0;
+let lastNfCount = 0;
+
+let logDispatchRunning = false;
+function monitorNFLogs() {
+    console.log('checking nf log');
+    if (logDispatchRunning === true || trackNf === false || nfCount === lastNfCount) {
+        return;
+    }
+
+    logDispatchRunning = true;
+
+    nfLog.forEach(log => {
+        console.log(log.type, log.data);
+    })
+    nfLog = [];
+
+    lastNfCount = nfCount;
+
+    logDispatchRunning = false;
+}
+
+let monitorNFLogsTracker = null;
+
+const stopNFMonitor = () => {
+    trackNf = false;
+    clearInterval(monitorNFLogsTracker);
+    monitorNFLogsTracker = null;
+}
+const startNFMonitor = () => {
+    if (monitorNFLogsTracker) {
+        return;
+    }
+
+    trackNf = true;
+    monitorNFLogsTracker = setInterval(monitorNFLogs, 5000);
+}
+
+startNFMonitor();
+stopNFMonitor();
+
+const oldNfcSend = NRF.nfcSend;
+NRF.nfcSend = function(data) {
+    oldNfcSend.apply(NRF, arguments);
+    nfLog.push({type: 'tx', data });
+}
 
 function debug(cb) {
     if (dbg) {
@@ -74,10 +124,9 @@ function NFCTag(data) {
             self.tagWritten = false;
         }
 
-        if (self._initCard()) {
-            NRF.nfcStop();
-            NRF.nfcStart(new Uint8Array([self._data[0], self._data[1], self._data[2], self._data[4], self._data[5], self._data[6], self._data[7]]));
-        }
+        self._initCard()
+        NRF.nfcStop();
+        NRF.nfcStart(new Uint8Array([self._data[0], self._data[1], self._data[2], self._data[4], self._data[5], self._data[6], self._data[7]]));
     });
 
     NRF.on('NFCrx', function(rx) {
@@ -86,6 +135,8 @@ function NFCTag(data) {
         } else {
             NRF.nfcSend(0);
         }
+        nfCount++;
+        nfLog.push({ type: 'rx', data: rx });
     });
 }
 
@@ -327,8 +378,7 @@ NFCTag.prototype = {
 function TagData(led, filename) {
     this.led = led;
     this.filename = filename;
-    const storage = require("Storage");
-    const buffer = storage.readArrayBuffer(filename);
+    const buffer = Storage.readArrayBuffer(filename);
 
     if (buffer) {
         const output = new Uint8Array(buffer.length);
@@ -343,8 +393,7 @@ function TagData(led, filename) {
 }
 
 TagData.prototype.save = function() {
-    const storage = require("Storage");
-    storage.write(this.filename, this.buffer);
+    Storage.write(this.filename, this.buffer);
 };
 
 const tags = (function() {

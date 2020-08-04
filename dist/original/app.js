@@ -1,5 +1,83 @@
 'use strict';
 
+class NFCLogger {
+  static attach(NRF) {
+    var _this = this;
+
+    NFCLogger.tracking = false;
+    NFCLogger.monitorInterval = null;
+    NFCLogger.dispatcherRunning = false;
+    NFCLogger.count = 0;
+    NFCLogger.lastCount = 0;
+    NFCLogger.log = [];
+    NFCLogger.recentlyCommunicated = false;
+    NFCLogger.oldNfcSend = NRF.nfcSend;
+    var response = null;
+
+    NRF.nfcSend = function (data) {
+      NFCLogger.oldNfcSend.call(NRF, data);
+      _this.recentlyCommunicated = true;
+      response = {
+        type: 'tx',
+        data: data
+      };
+    };
+
+    NRF.on('NFCrx', function (rx) {
+      _this.recentlyCommunicated = true;
+
+      _this.log.push({
+        type: 'rx',
+        data: rx
+      });
+
+      _this.log.push(response);
+
+      response = null;
+      _this.count++;
+    });
+  }
+
+  static stop() {
+    this.tracking = false;
+    clearInterval(this.monitorInterval);
+    this.monitorInterval = null;
+  }
+
+  static start(timeout) {
+    var _this2 = this;
+
+    if (this.monitorInterval) {
+      return;
+    }
+
+    this.tracking = true;
+    this.monitorInterval = setInterval(function () {
+      _this2._monitor();
+    }, timeout || 5000);
+  }
+
+  static _monitor() {
+    if (this.dispatcherRunning === true || this.tracking === false || this.count === this.lastCount) {
+      return;
+    }
+
+    if (this.recentlyCommunicated) {
+      this.recentlyCommunicated = false;
+      return;
+    }
+
+    this.dispatcherRunning = true;
+    this.log.forEach(function (log) {
+      console.log(log);
+    });
+    this.log = [];
+    this.lastCount = this.count;
+    this.dispatcherRunning = false;
+  }
+
+}
+
 class Debugger {
   static debug(fn) {
     if (this.enabled) {
@@ -85,7 +163,7 @@ NFCTag.prototype = {
     }
   },
   _initCard: function () {
-    var _this = this;
+    var _this3 = this;
 
     var pwStart = 0x85 * 4;
     this._info.password = new Uint8Array(this._data, pwStart - 1, 5);
@@ -104,10 +182,10 @@ NFCTag.prototype = {
     }
 
     Debugger.debug(function () {
-      console.log('password', _this._info.password);
-      console.log('pack', _this._responses.pack);
-      console.log('signature', _this._responses.signature);
-      console.log('version', _this._responses.version);
+      console.log('password', _this3._info.password);
+      console.log('pack', _this3._responses.pack);
+      console.log('signature', _this3._responses.signature);
+      console.log('version', _this3._responses.version);
     });
 
     this._fixUid();
@@ -115,7 +193,7 @@ NFCTag.prototype = {
     this.lockedPages = this._getLockedPages();
   },
   _fixUid: function () {
-    var _this2 = this;
+    var _this4 = this;
 
     var bcc0 = this._data[0] ^ this._data[1] ^ this._data[2] ^ 0x88;
     var bcc1 = this._data[4] ^ this._data[5] ^ this._data[6] ^ this._data[7];
@@ -123,7 +201,7 @@ NFCTag.prototype = {
       var uidBlock = "";
 
       for (var i = 0; i < 9; i++) {
-        uidBlock += _this2._data[i].toString(16) + " ";
+        uidBlock += _this4._data[i].toString(16) + " ";
       }
 
       console.log(uidBlock);
@@ -429,8 +507,8 @@ NRF.on('NFCoff', function () {
 });
 NRF.on('NFCrx', function (rx) {
   tag.receive(rx);
-}); // NFCLogger.attach(NRF);
-
+});
+NFCLogger.attach(NRF);
 setWatch(function () {
   tag.stop(); // tags[currentTag].save();
 

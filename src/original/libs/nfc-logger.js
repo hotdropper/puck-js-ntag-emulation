@@ -9,15 +9,26 @@ export default class NFCLogger {
         NFCLogger.recentlyCommunicated = false;
 
         NFCLogger.oldNfcSend = NRF.nfcSend;
+
+        // this might be kinda confusing, but best practice is:
+        // call attach() AFTER you have registered your primary handler
+        // that way your request/response gets priority, and logging
+        // comes afterwards. Unfortunately, this ALSO means that the logger
+        // ends up getting your /response/ before it gets the /transmission/
+        // so we store the response and then add it after the received data
+        // in our NFCrx handler.
+        let response = null;
         NRF.nfcSend = (data) => {
             NFCLogger.oldNfcSend.call(NRF, data);
             this.recentlyCommunicated = true;
-            this.log.push({type: 'tx', data });
+            response = {type: 'tx', data };
         }
 
         NRF.on('NFCrx', (rx) => {
             this.recentlyCommunicated = true;
             this.log.push({type: 'rx', data: rx });
+            this.log.push(response);
+            response = null;
             this.count++;
         });
     }

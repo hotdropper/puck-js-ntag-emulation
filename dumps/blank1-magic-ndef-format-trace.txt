@@ -1,0 +1,55 @@
+[=] downloading tracelog from device
+[+] Recorded activity (trace len = 768 bytes)
+[=] Start = Start of Start Bit, End = End of last modulation. Src = Source of Transfer
+[=] ISO14443A - All times are in carrier periods (1/13.56MHz)
+
+      Start |        End | Src | Data (! denotes parity error)                                           | CRC | Annotation
+------------+------------+-----+-------------------------------------------------------------------------+-----+--------------------
+          0 |       1056 | Rdr |26                                                                       |     | REQA
+       2228 |       4596 | Tag |44  00                                                                   |     | 
+      11648 |      14112 | Rdr |93  20                                                                   |     | ANTICOLL
+      15284 |      21172 | Tag |88  04  25  70  d9                                                       |     | 
+      28144 |      38608 | Rdr |93  70  88  04  25  70  d9  0b  fa                                       |  ok | SELECT_UID
+      39844 |      43364 | Tag |04  da  17                                                               |     | 
+      50432 |      52896 | Rdr |95  20                                                                   |     | ANTICOLL-2
+      54068 |      59956 | Tag |6a  4b  68  81  c8                                                       |     | 
+      66926 |      77390 | Rdr |95  70  6a  4b  68  81  c8  37  a6                                       |  ok | SELECT_UID-2
+      78626 |      82210 | Tag |00  fe  51                                                               |     | 
+     104538 |     109242 | Rdr |30  02  10  8b                                                           |  ok | READBLOCK(2)
+     113038 |     133902 | Tag |c8  48  00  00  e1  10  3e  00  03  00  fe  00  00  00  00  00  e9  cb   |  ok | 
+     149232 |     154000 | Rdr |1a  00  41  76                                                           |  ok | AUTH 
+    4244016 |    4248784 | Rdr |50  00  57  cd                                                           |  ok | HALT
+    4300378 |    4301370 | Rdr |52                                                                       |     | WUPA
+    4302606 |    4304974 | Tag |44  00                                                                   |     | 
+    4312026 |    4322490 | Rdr |93  70  88  04  25  70  d9  0b  fa                                       |  ok | SELECT_UID
+    4323726 |    4327246 | Tag |04  da  17                                                               |     | 
+    4334264 |    4344728 | Rdr |95  70  6a  4b  68  81  c8  37  a6                                       |  ok | SELECT_UID-2
+    4345964 |    4349548 | Tag |00  fe  51                                                               |     | 
+    4380428 |    4385132 | Rdr |30  02  10  8b                                                           |  ok | READBLOCK(2)
+    4388736 |    4409600 | Tag |c8  48  00  00  e1  10  3e  00  03  00  fe  00  00  00  00  00  e9  cb   |  ok | 
+    4442734 |    4447438 | Rdr |30  03  99  9a                                                           |  ok | READBLOCK(3)
+    4451106 |    4471970 | Tag |e1  10  3e  00  03  00  fe  00  00  00  00  00  00  00  00  00  cc  85   |  ok | 
+    4503570 |    4508274 | Rdr |30  02  10  8b                                                           |  ok | READBLOCK(2)
+    4511942 |    4532806 | Tag |c8  48  00  00  e1  10  3e  00  03  00  fe  00  00  00  00  00  e9  cb   |  ok | 
+    4562032 |    4571408 | Rdr |a2  03  e1  10  3f  00  25  ba                                           |  ok | WRITEBLOCK(3)
+    4572836 |    4573412 | Tag |0a                                                                       |     | 
+    4602002 |    4606706 | Rdr |30  02  10  8b                                                           |  ok | READBLOCK(2)
+    4610374 |    4631174 | Tag |c8  48  00  00  e1  10  3f  00  03  00  fe  00  00  00  00  00  ce  e7   |  ok | 
+    4662802 |    4672114 | Rdr |a2  04  03  03  d8  00  65  c9                                           |  ok | WRITEBLOCK(4)
+    4673734 |    4674310 | Tag |0a                                                                       |     | 
+    4704530 |    4709234 | Rdr |30  02  10  8b                                                           |  ok | READBLOCK(2)
+    4712902 |    4733702 | Tag |c8  48  00  00  e1  10  3f  00  03  03  d8  00  00  00  00  00  3a  d2   |  ok | 
+    4763538 |    4772850 | Rdr |a2  05  00  fe  00  00  5c  05                                           |  ok | WRITEBLOCK(5)
+    4774470 |    4775046 | Tag |0a                                                                       |     | 
+    4804314 |    4809018 | Rdr |30  03  99  9a                                                           |  ok | READBLOCK(3)
+    4812814 |    4833614 | Tag |e1  10  3f  00  03  03  d8  00  00  fe  00  00  00  00  00  00  82  50   |  ok | 
+    4868500 |    4873204 | Rdr |30  02  10  8b                                                           |  ok | READBLOCK(2)
+    4876872 |    4897672 | Tag |c8  48  00  00  e1  10  3f  00  03  03  d8  00  00  fe  00  00  15  4e   |  ok | 
+    4928622 |    4933326 | Rdr |30  02  10  8b                                                           |  ok | READBLOCK(2)
+    4936994 |    4957794 | Tag |c8  48  00  00  e1  10  3f  00  03  03  d8  00  00  fe  00  00  15  4e   |  ok | 
+    4986892 |    4996268 | Rdr |a2  04  03  04  d8  00  60  45                                           |  ok | WRITEBLOCK(4)
+    4997632 |    4998208 | Tag |0a                                                                       |     | 
+    5025042 |    5034418 | Rdr |a2  05  00  00  fe  00  6b  7f                                           |  ok | WRITEBLOCK(5)
+    5035846 |    5036422 | Tag |0a                                                                       |     | 
+    5079760 |    5084528 | Rdr |50  00  57  cd                                                           |  ok | HALT
+

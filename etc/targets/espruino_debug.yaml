@@ -4,3 +4,4 @@ espruino:
     MINIFICATION_Mangle: false
     MODULE_MERGE: false
     MODULE_MINIFICATION_LEVEL: false
+  output: debug.js

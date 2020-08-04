@@ -25,26 +25,19 @@ cli.main((args, opts) => {
     Object.values(file.blocks).forEach(block => {
         pos = appendByteStringToArray(bytes, block, pos);
     });
-    appendByteStringToArray(bytes, file.Card.Signature, pos);
-    let outStr = 'var newData = new Uint8Array([\n';
+    pos = appendByteStringToArray(bytes, file.Card.Signature, pos);
+    appendByteStringToArray(bytes, file.Card.Version, pos);
+    let outStr = 'var newTagData = new TagData();\n';
     for (let i = 0; i < bytes.length; i = i + 8) {
         const outBytes = bytes.slice(i, i+8);
-        outStr += outBytes.join(', ');
-        if (outBytes.length === 8) {
-            outStr += ',\n';
-        }
+        outStr += 'newTagData.buffer.set([' + outBytes.join(',') + '], ' + i + ");\n";
     }
-    outStr += ']);';
     console.log(outStr);
     console.log(`
 
-for (let i = 0; i < newData.length; i++) {
-    tag.tagData.buffer[i] = newData[i];
-    tag._data[i] = newData[i];
-}
-delete newData;
-tag = new NFCTag(tags[currentTag]);
-
+Debugger.enable();
+NFCLogger.start();
+tag.setData(newTagData);
 
 
 `)

@@ -80,6 +80,10 @@ gulp.task('upload', (cb) => {
     args.push('--board ' + config.espruino.board);
   }
 
+  if (config.espruino.output) {
+    args.push('-n -o ' + config.espruino.output);
+  }
+
   const argString = args.join(' ');
 
   const cmd = `npx espruino ${argString} ${outFile}`;

@@ -47,7 +47,7 @@
 [=]   cfg0 [131/0x83]: 04 00 00 FF 
 [=]                     - strong modulation mode disabled
 [=]                     - pages don't need authentication
-[=]   cfg1 [132/0x84]: 00 05 00 00 
+[=]   cfg1 [132/0x84]: 00 05 00 1B
 [=]                     - Unlimited password attempts
 [=]                     - NFC counter disabled
 [=]                     - NFC counter password protection enabled
@@ -55,6 +55,5 @@
 [=]                     - write access is protected with password
 [=]                     - 05, Virtual Card Type Identifier is default
 [=]   PWD  [133/0x85]: FF FF FF FF - (cannot be read)
-[=]   PACK [134/0x86]: 04 DA       - (cannot be read)
+[=]   PACK [134/0x86]: 00 00       - (cannot be read)
 [=]   RFU  [134/0x86]:       00 00 - (cannot be read)
-

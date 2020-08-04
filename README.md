@@ -29,3 +29,8 @@ uploads `dist/original/app.js` to your puck
 `gulp --target original`
 
 builds `dist/original/app.js` and uploads it.
+
+
+### How much does the puck handle automatically?
+
+

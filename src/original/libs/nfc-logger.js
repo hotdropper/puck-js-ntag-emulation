@@ -14,8 +14,8 @@ export default class NFCLogger {
         }
 
         NRF.on('NFCrx', (rx) => {
+            this.log.push({type: 'rx', data: rx });
             this.count++;
-            this.log.push({ type: 'rx', data: rx });
         });
     }
 
@@ -31,11 +31,10 @@ export default class NFCLogger {
         }
 
         this.tracking = true;
-        this.monitorInterval = setInterval(this._monitor, timeout || 5000);
+        this.monitorInterval = setInterval(() => { this._monitor(); }, timeout || 5000);
     }
 
     static _monitor() {
-        console.log('checking nf log');
         if (this.dispatcherRunning === true || this.tracking === false || this.count === this.lastCount) {
             return;
         }
@@ -43,8 +42,9 @@ export default class NFCLogger {
         this.dispatcherRunning = true;
 
         this.log.forEach(log => {
-            console.log(log.type, log.data);
-        })
+            console.log(log);
+        });
+
         this.log = [];
 
         this.lastCount = this.count;

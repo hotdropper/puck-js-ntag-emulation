@@ -1,3 +1,10 @@
+NDEF data:
+
+Type: URI
+Description: teh googlez
+URI type: https://www.
+URI Data: google.com
+
 [=] downloading tracelog from device
 [+] Recorded activity (trace len = 981 bytes)
 [=] Start = Start of Start Bit, End = End of last modulation. Src = Source of Transfer

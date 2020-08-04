@@ -48,7 +48,7 @@ config = layerTargetConfig(options.target, config);
 // });
 
 gulp.task('rollup', () => {
-  return gulp.src(`./src/${options.target}/**/*.js`, { base: `./src/${options.target}` })
+  return gulp.src(`./src/${options.target}/**/*.js`)
       // transform the files here.
       .pipe(rollup({
         input: `./src/${options.target}/app.js`,

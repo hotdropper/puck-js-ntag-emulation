@@ -24,7 +24,9 @@
     "transfer-test": "npm run build-test && npm run send-test"
   },
   "babel": {
-    "presets": ["babel-preset-espruino"]
+    "presets": [
+      "babel-preset-espruino"
+    ]
   },
   "keywords": [],
   "author": "",
@@ -46,6 +48,7 @@
     "babel-plugin-transform-es2015-spread": "^6.22.0",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-espruino": "^0.1.0",
+    "cli": "^1.0.1",
     "eslint": "^7.6.0",
     "eslint-config-espruino-globals": "^1.0.0",
     "espruino": "^0.1.31",

@@ -5,14 +5,14 @@ const ByteTools = require('./byte-tools.js');
 
 const staticResponses = {
     nak: {
-        argument: new Uint8Array([0x00]),
-        crc: new Uint8Array([0x01]),
-        auth: new Uint8Array([0x04]),
-        eeprom: new Uint8Array([0x04]),
+        argument: 0x00,
+        crc: 0x01,
+        auth: 0x04,
+        eeprom: 0x04,
     },
     atqa: new Uint8Array([0x00, 0x44]),
-    sak: new Uint8Array([0x00]),
-    ack: new Uint8Array([0x0A]),
+    sak: 0x00,
+    ack: 0x0A,
     backdoorOpened: new Uint8Array([0x01, 0x02, 0x03, 0x04]),
     backdoorClosed: new Uint8Array([0x04, 0x03, 0x02, 0x01]),
 };

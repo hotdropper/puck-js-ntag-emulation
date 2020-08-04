@@ -1,0 +1,59 @@
+[=] --- Tag Information --------------------------
+[=] -------------------------------------------------------------
+[+]       TYPE: NTAG 215 504bytes (NT2H1511G0DU)
+[+]        UID: 04 37 70 6A 4B 68 81
+[+]     UID[0]: 04, NXP Semiconductors Germany
+[+]       BCC0: CB (ok)
+[+]       BCC1: C8 (ok)
+[+]   Internal: 48 (default)
+[+]       Lock: 00 00  - 00
+[+] OneTimePad: E1 10 3E 00  - 2160
+
+
+[=] --- NDEF Message
+[+] Capability Container: E1 10 3E 00
+[+]   E1: NDEF Magic Number
+[+]   10: version 0.1 supported by tag
+[+]        : Read access granted without any security / Write access granted without any security
+[+]   3E: Physical Memory Size: 496 bytes
+[+]   3E: NDEF Memory Size: 496 bytes
+[+]   Additional feature information
+[+]   00
+[+]   00000000
+[+]   xxx      - 00: RFU (ok)
+[+]      x     - 00: don't support special frame
+[+]       x    - 00: don't support lock block
+[+]        xx  - 00: RFU (ok)
+[+]          x - 00: IC don't support multiple block reads
+
+[=] --- Tag Signature
+[=]  IC signature public key name: NXP NTAG21x (2013)
+[=] IC signature public key value: 04494E1A386D3D3CFE3DC10E5DE68A499B1C202DB5B132393E89ED19FE5BE8BC61
+[=]     Elliptic curve parameters: NID_secp128r1
+[=]              TAG IC Signature: F5529137BE695F21BEFA325B0F8D25F4F13C5630E57484EA3F6DCEEB11C0C0B8
+[+]            Signature verified: successful
+
+[=] --- Tag Version
+[=]        Raw bytes: 00 04 04 02 01 00 11 03
+[=]        Vendor ID: 04, NXP Semiconductors Germany
+[=]     Product type: 04, NTAG
+[=]  Product subtype: 02, 50pF
+[=]    Major version: 01
+[=]    Minor version: 00
+[=]             Size: 11, (512 <-> 256 bytes)
+[=]    Protocol type: 03, ISO14443-3 Compliant
+
+[=] --- Tag Configuration
+[=]   cfg0 [131/0x83]: 04 00 00 FF
+[=]                     - strong modulation mode disabled
+[=]                     - pages don't need authentication
+[=]   cfg1 [132/0x84]: 00 05 00 00
+[=]                     - Unlimited password attempts
+[=]                     - NFC counter disabled
+[=]                     - NFC counter password protection enabled
+[=]                     - user configuration writeable
+[=]                     - write access is protected with password
+[=]                     - 05, Virtual Card Type Identifier is default
+[=]   PWD  [133/0x85]: FF FF FF FF - (cannot be read)
+[=]   PACK [134/0x86]: 00 00       - (cannot be read)
+[=]   RFU  [134/0x86]:       00 00 - (cannot be read)

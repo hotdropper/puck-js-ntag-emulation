@@ -25,122 +25,77 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+import NFCLogger from './libs/nfc-logger';
+import Debugger from './libs/debugger';
 const Storage = require("Storage");
 
-let dbg = false;
-let trackNf = false;
-let nfLog = [];
-let nfCount = 0;
-let lastNfCount = 0;
-
-let logDispatchRunning = false;
-function monitorNFLogs() {
-    console.log('checking nf log');
-    if (logDispatchRunning === true || trackNf === false || nfCount === lastNfCount) {
-        return;
-    }
-
-    logDispatchRunning = true;
-
-    nfLog.forEach(log => {
-        console.log(log.type, log.data);
-    })
-    nfLog = [];
-
-    lastNfCount = nfCount;
-
-    logDispatchRunning = false;
-}
-
-let monitorNFLogsTracker = null;
-
-const stopNFMonitor = () => {
-    trackNf = false;
-    clearInterval(monitorNFLogsTracker);
-    monitorNFLogsTracker = null;
-}
-const startNFMonitor = () => {
-    if (monitorNFLogsTracker) {
-        return;
-    }
-
-    trackNf = true;
-    monitorNFLogsTracker = setInterval(monitorNFLogs, 5000);
-}
-
-startNFMonitor();
-stopNFMonitor();
-
-const oldNfcSend = NRF.nfcSend;
-NRF.nfcSend = function(data) {
-    oldNfcSend.apply(NRF, arguments);
-    nfLog.push({type: 'tx', data });
-}
-
-function debug(cb) {
-    if (dbg) {
-        cb();
-    }
-}
+const staticResponses = {
+    nak: {
+        argument: 0x00,
+        crc: 0x01,
+        auth: 0x04,
+        eeprom: 0x04,
+    },
+    atqa: new Uint8Array([0x00, 0x44]),
+    sak: 0x00,
+    ack: 0x0A,
+    backdoorOpened: new Uint8Array([0x01, 0x02, 0x03, 0x04]),
+    backdoorClosed: new Uint8Array([0x04, 0x03, 0x02, 0x01]),
+};
 
 function NFCTag(data) {
+    this.authenticated = false;
+    this.backdoor = false;
+    this.tagWritten = false;
+    this.lockedPages = [];
     if (data instanceof TagData) {
+        this.led = data.led;
+        this.filename = data.filename;
         this.setData(data.buffer);
         this.tagData = data;
     } else {
         this.setData(data);
     }
-    this.authenticated = false;
-    this.backdoor = false;
-    this.tagWritten = false;
-    this.lockedPages = [];
-    this.filename = "tag.bin";
-    this.led = [LED1];
-
-    const self = this;
-
-    NRF.on('NFCon', function() {
-        for (let i = 0; i<self.led.length; i++) {
-            digitalWrite(self.led[i], 1);
-        }
-    });
-
-    NRF.on('NFCoff', function() {
-        for (let i = 0; i<self.led.length; i++) {
-            digitalWrite(self.led[i], 0);
-        }
-
-        self.authenticated = false;
-        self.backdoor = false;
-
-        self.lockedPages = self._getLockedPages();
-
-        if (self.tagWritten === true) {
-            if (self.tagData) {
-                self.tagData.save();
-            }
-            //console.log("Saving tag to flash");
-            //require("Storage").write(filename, this._data);
-            self.tagWritten = false;
-        }
-
-        self._initCard()
-        NRF.nfcStop();
-        NRF.nfcStart(new Uint8Array([self._data[0], self._data[1], self._data[2], self._data[4], self._data[5], self._data[6], self._data[7]]));
-    });
-
-    NRF.on('NFCrx', function(rx) {
-        if (rx && self._callbacks[rx[0]]) {
-            self._callbacks[rx[0]](rx, self);
-        } else {
-            NRF.nfcSend(0);
-        }
-        nfCount++;
-        nfLog.push({ type: 'rx', data: rx });
-    });
 }
 
 NFCTag.prototype = {
+    start: function() {
+        NRF.nfcStart(new Uint8Array([this._data[0], this._data[1], this._data[2], this._data[4], this._data[5], this._data[6], this._data[7]]));
+    },
+    stop: function() {
+        NRF.nfcStop();
+    },
+    activate: function() {
+        for (let i = 0; i<this.led.length; i++) {
+            digitalWrite(this.led[i], 1);
+        }
+    },
+    deactivate: function() {
+        for (let i = 0; i<this.led.length; i++) {
+            digitalWrite(this.led[i], 0);
+        }
+
+        this.authenticated = false;
+        this.backdoor = false;
+
+        this.lockedPages = this._getLockedPages();
+
+        if (this.tagWritten === true) {
+            if (this.tagData) {
+                this.tagData.save();
+            }
+            //console.log("Saving tag to flash");
+            //require("Storage").write(filename, this._data);
+            this.tagWritten = false;
+        }
+    },
+    receive: function(rx) {
+        if (rx && this._callbacks[rx[0]]) {
+            this._callbacks[rx[0]](rx, this);
+        } else {
+            NRF.nfcSend(staticResponses.nak.argument);
+        }
+    },
     _initCard: function() {
         const pwStart = 0x85 * 4;
         this._info.password = new Uint8Array(this._data, pwStart, 4);
@@ -153,7 +108,7 @@ NFCTag.prototype = {
         const bcc0 = this._data[0] ^ this._data[1] ^ this._data[2] ^ 0x88;
         const bcc1 = this._data[4] ^ this._data[5] ^ this._data[6] ^ this._data[7];
 
-        debug(() => {
+        Debugger.debug(() => {
             let uidBlock = "";
             for (let i = 0; i < 9; i++) {
                 uidBlock += this._data[i].toString(16)+ " ";
@@ -242,8 +197,9 @@ NFCTag.prototype = {
             return new Uint8Array(4);
         }
 
+
         //send response
-        return new Uint8Array(this._data.buffer, page * 4, 4);
+        return new Uint8Array(this._data.buffer, page * 4, 16);
     },
     _responses: {
         version: new Uint8Array([0x00, 0x04, 0x04, 0x02, 0x01, 0x00, 0x11, 0x03]),
@@ -360,7 +316,7 @@ NFCTag.prototype = {
     },
     setData: function(data) {
         //shutdown
-        NRF.nfcStop();
+        this.stop();
 
         //store data
         this._data = data || new Uint8Array(572);
@@ -369,7 +325,7 @@ NFCTag.prototype = {
         this._initCard();
 
         //re-start
-        NRF.nfcStart(new Uint8Array([data[0], data[1], data[2], data[4], data[5], data[6], data[7]]));
+        this.start();
     },
     getData: function() { return this._data; }
 };
@@ -393,7 +349,7 @@ function TagData(led, filename) {
 }
 
 TagData.prototype.save = function() {
-    Storage.write(this.filename, this.buffer);
+    // Storage.write(this.filename, this.buffer);
 };
 
 const tags = (function() {
@@ -421,10 +377,24 @@ let currentTag = 0;
 let tag = new NFCTag(tags[currentTag]);
 tag.filename = tags[currentTag].filename;
 
+NRF.on('NFCon', () => {
+    tag.activate();
+});
+
+NRF.on('NFCoff', () => {
+    tag.deactivate();
+});
+
+NRF.on('NFCrx', (rx) => {
+    tag.receive(rx);
+});
+
+NFCLogger.attach(NRF);
+
 setWatch(function() {
     NRF.nfcStop();
 
-    tags[currentTag].save();
+    // tags[currentTag].save();
 
     currentTag++;
 

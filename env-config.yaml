@@ -18,5 +18,5 @@ babel:
   -
     - module-resolver
     - root: [ ./src ]
-      alias:
-        '#test': './src/test'
+#      alias:
+#        '#test': './src/test'

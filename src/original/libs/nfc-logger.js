@@ -25,13 +25,13 @@ export default class NFCLogger {
         this.monitorInterval = null;
     }
 
-    static start() {
+    static start(timeout) {
         if (this.monitorInterval) {
             return;
         }
 
         this.tracking = true;
-        this.monitorInterval = setInterval(() => this._monitor, 5000);
+        this.monitorInterval = setInterval(this._monitor, timeout || 5000);
     }
 
     static _monitor() {

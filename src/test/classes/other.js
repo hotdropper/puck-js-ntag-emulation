@@ -3,7 +3,7 @@ export default class Other {
         console.log('construct');
     }
 
-    do() {
-        console.log('do');
+    doFoo() {
+        console.log('doFoo');
     }
 }

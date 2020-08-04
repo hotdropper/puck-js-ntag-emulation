@@ -203,9 +203,6 @@ NFCTag.prototype = {
     },
     _responses: {
         version: new Uint8Array([0x00, 0x04, 0x04, 0x02, 0x01, 0x00, 0x11, 0x03]),
-        pwdSuccess: new Uint8Array([0x80, 0x80]),
-        pwdFail: new Uint8Array([0x04]),
-        ack: new Uint8Array([0x0A]),
         puckSuccess: new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]),
         puckDeauth: new Uint8Array([0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01])
     },
@@ -273,15 +270,17 @@ NFCTag.prototype = {
 
             if (rx[1] === 133 && rx[2] === 134) {
                 if (! self.backdoor) {
-                    NRF.nfcSend(self._responses.puckSuccess);
+                    NRF.nfcSend(staticResponses.backdoorOpened);
                     self.backdoor = true;
                 } else {
                     if (self.tagData) {
-                        NRF.nfcSend(self._responses.puckDeauth);
+                        NRF.nfcSend(staticResponses.backdoorClosed);
                         self.backdoor = false;
                         setTimeout(() => {
                             self.tagData.save();
+                            self.stop()
                             self._initCard();
+                            self.start();
                         }, 0);
                     }
                 }
@@ -293,7 +292,7 @@ NFCTag.prototype = {
         0x1b: function pwdAuth(rx, self) {
             for (let i = 0; i < 4; i++) {
                 if (self._info.password[i] !== rx[i + 1]) {
-                    NRF.nfcSend(self._responses.pwdFail);
+                    NRF.nfcSend(staticResponses.nak.auth);
                     return;
                 }
             }

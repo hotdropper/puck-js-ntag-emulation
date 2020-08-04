@@ -6,14 +6,17 @@ export default class NFCLogger {
         NFCLogger.count = 0;
         NFCLogger.lastCount = 0;
         NFCLogger.log = [];
+        NFCLogger.recentlyCommunicated = false;
 
         NFCLogger.oldNfcSend = NRF.nfcSend;
         NRF.nfcSend = (data) => {
             NFCLogger.oldNfcSend.call(NRF, data);
+            this.recentlyCommunicated = true;
             this.log.push({type: 'tx', data });
         }
 
         NRF.on('NFCrx', (rx) => {
+            this.recentlyCommunicated = true;
             this.log.push({type: 'rx', data: rx });
             this.count++;
         });
@@ -36,6 +39,11 @@ export default class NFCLogger {
 
     static _monitor() {
         if (this.dispatcherRunning === true || this.tracking === false || this.count === this.lastCount) {
+            return;
+        }
+
+        if (this.recentlyCommunicated) {
+            this.recentlyCommunicated = false;
             return;
         }
 

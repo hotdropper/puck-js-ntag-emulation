@@ -432,7 +432,7 @@ NRF.on('NFCrx', (rx) => {
     tag.receive(rx);
 });
 
-// NFCLogger.attach(NRF);
+NFCLogger.attach(NRF);
 
 setWatch(function() {
     tag.stop();

@@ -7,8 +7,12 @@ const exec = require('child_process').exec;
 const _ = require('lodash');
 const babel = require('gulp-babel');
 const rollup = require('gulp-rollup');
+const nodeResolve = require('@rollup/plugin-node-resolve').nodeResolve;
+const rollupBabel = require('@rollup/plugin-babel').babel;
+const buildRollupConfig = require('rollup-plugin-espruino-modules').buildRollupConfig;
 
 let config = {
+  babel: require('./.babelrc.js'),
 };
 
 config = _.merge(config, yaml.safeLoad(fs.readFileSync('./env-config.yaml').toString()));
@@ -48,7 +52,7 @@ config = layerTargetConfig(options.target, config);
 // });
 
 gulp.task('rollup', () => {
-  return gulp.src(`./src/${options.target}/**/*.js`)
+  return gulp.src([`./src/${options.target}/**/*.js`, './node_modules/core-js/**/*.js'])
       // transform the files here.
       .pipe(rollup({
         input: `./src/${options.target}/app.js`,

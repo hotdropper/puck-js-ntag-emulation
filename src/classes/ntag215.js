@@ -17,7 +17,7 @@ const staticResponses = {
     backdoorClosed: new Uint8Array([0x04, 0x03, 0x02, 0x01]),
 };
 
-const page = (pos, offset) => (pos * 4) + (offset || 0);
+function page(pos, offset) { return (pos * 4) + (offset || 0); }
 
 const WRITE_PROTECTION = {
     CONSTANT: 'constant',
@@ -132,15 +132,50 @@ const dynamicLockByteBits = {
 };
 
 const commands = {
-    get_version: 0x60,
-    read: 0x30,
-    fast_read: 0x3a,
-    write: 0xa2,
-    comp_write: 0xa0,
-    read_cnt: 0x39,
-    pwd_auth: 0x1b,
-    read_sig: 0x3c,
+    0x60: 'get_version',
+    0x30: 'read',
+    0x3a: 'fast_read',
+    0xa2: 'write',
+    0xa0: 'comp_write',
+    0x39: 'read_cnt',
+    0x1b: 'pwd_auth',
+    0x3c: 'read_sig',
+    0xF0: 'set_pwd',
+    0xF1: 'set_pack',
+    0xF2: 'set_sig',
+    0xF3: 'set_sig',
+    0xF4: 'set_sig',
+    0xF5: 'set_sig',
+    0xF6: 'set_sig',
+    0xF7: 'set_sig',
+    0xF8: 'set_sig',
+    0xF9: 'set_sig',
+    0xFA: 'set_ver',
+    0xFB: 'set_ver',
 };
+
+const commandFuncts = {
+    0x60: function(rx) { },
+    0x30: function(rx) { },
+    0x3a: function(rx) { },
+    0xa2: function(rx) { },
+    0xa0: function(rx) { },
+    0x39: function(rx) { },
+    0x1b: function(rx) { },
+    0x3c: function(rx) { },
+    0xF0: function(rx) { this._data.set(rx.slice(1), page(0x85 * 4)); NRF.nfcSend(0x0A)},
+    0xF1: function(rx) { this._data.set(rx.slice(1), page(0x86)); NRF.nfcSend(0x0A)},
+    0xF2: function(rx) { this._data.set(rx.slice(1), 540); NRF.nfcSend(0x0A)},
+    0xF3: function(rx) { this._data.set(rx.slice(1), 544); NRF.nfcSend(0x0A)},
+    0xF4: function(rx) { this._data.set(rx.slice(1), 548); NRF.nfcSend(0x0A)},
+    0xF5: function(rx) { this._data.set(rx.slice(1), 552); NRF.nfcSend(0x0A)},
+    0xF6: function(rx) { this._data.set(rx.slice(1), 556); NRF.nfcSend(0x0A)},
+    0xF7: function(rx) { this._data.set(rx.slice(1), 560); NRF.nfcSend(0x0A)},
+    0xF8: function(rx) { this._data.set(rx.slice(1), 564); NRF.nfcSend(0x0A)},
+    0xF9: function(rx) { this._data.set(rx.slice(1), 568); NRF.nfcSend(0x0A)},
+    0xFA: function(rx) { this._data.set(rx.slice(1), 572); NRF.nfcSend(0x0A)},
+    0xFB: function(rx) { this._data.set(rx.slice(1), 576); NRF.nfcSend(0x0A)},
+}
 
 class Ntag215 {
     /**

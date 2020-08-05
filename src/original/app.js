@@ -25,20 +25,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+import './libs/polyfills';
 import NFCLogger from './libs/nfc-logger';
 import Debugger from './libs/debugger';
+import TagGen from "./libs/tag-gen";
 const Storage = require("Storage");
 
 const staticResponses = {
     nak: {
-        argument: 0x00,
-        crc: 0x01,
-        auth: 0x04,
-        eeprom: 0x04,
+        invalid_argument: 0,
+        invalid_crc: 1,
+        auth_lockout: 4,
+        eeprom_error: 5,
     },
     atqa: new Uint8Array([0x00, 0x44]),
-    sak: 0x00,
-    ack: 0x0A,
+    sak: new Uint8Array(0x00),
+    ack: new Uint8Array(0x0A),
     backdoorOpened: new Uint8Array([0x01, 0x02, 0x03, 0x04]),
     backdoorClosed: new Uint8Array([0x04, 0x03, 0x02, 0x01]),
 };
@@ -52,6 +54,7 @@ function NFCTag(data) {
     this.pwdLockout = false;
     this.lockedPages = {};
     this._responses = {};
+    this.setData(data);
 }
 
 NFCTag.prototype = {
@@ -87,23 +90,23 @@ NFCTag.prototype = {
         if (rx && this._callbacks[rx[0]]) {
             this._callbacks[rx[0]](rx, this);
         } else {
-            NRF.nfcSend(staticResponses.nak.argument);
+            NRF.nfcSend(staticResponses.nak.invalid_argument);
         }
     },
     _initCard: function() {
         const pwStart = 0x85 * 4;
-        this._info.password = new Uint8Array(this._data, pwStart - 1, 5);
+        this._info.password = new Uint8Array(this._data.buffer, pwStart - 1, 5);
         this._info.password[0] = 0x1b;
 
         const packStart = 0x86 * 4;
-        this._responses.pack = new Uint8Array(this._data, packStart, 2);
+        this._responses.pack = new Uint8Array(this._data.buffer, packStart, 2);
 
         if (this._data.length > 540) {
-            this._responses.signature = new Uint8Array(this._data, 540, 32);
+            this._responses.signature = new Uint8Array(this._data.buffer, 540, 32);
         }
 
         if (this._data.length > 572) {
-            this._responses.version = new Uint8Array(this._data, 572, 8);
+            this._responses.version = new Uint8Array(this._data.buffer, 572, 8);
         } else {
             this._responses.version = new Uint8Array([0x00, 0x04, 0x04, 0x02, 0x01, 0x00, 0x11, 0x03]);
         }
@@ -208,7 +211,7 @@ NFCTag.prototype = {
     },
     _readPage: function(page) {
         if (this.backdoor === false && (page < 0 || page > 134)) {
-            return 0x00;
+            return staticResponses.nak.invalid_argument;
         }
 
         if (!this.backdoor && (page === 133 || page === 134)) {
@@ -221,7 +224,7 @@ NFCTag.prototype = {
         // In practice, it looks like the data returned when you ask for page 134 is:
         // [4 bytes page 134] + [first 12 bytes of tag]
         //send response
-        return new Uint8Array(this._data, page * 4, 16);
+        return new Uint8Array(this._data.buffer, page * 4, 16);
     },
     _info: {
         password: [0x1b, 0x00, 0x00, 0x00, 0x00],
@@ -232,7 +235,7 @@ NFCTag.prototype = {
         },
         0xa2: function write(rx, self) {
             if (!this.backdoor && (rx[1] > 134 || self.lockedPages[rx[1]])) {
-                NRF.nfcSend(0x00);
+                NRF.nfcSend(staticResponses.nak.invalid_argument);
                 Debugger.debug(() => {
                     console.log('write blocked');
                 });
@@ -243,7 +246,7 @@ NFCTag.prototype = {
                 if (rx[1] === 2) {
                     self._data[10] = self._data[10] | rx[4];
                     self._data[11] = self._data[11] | rx[5];
-                    NRF.nfcSend(0x0A);
+                    NRF.nfcSend(0x0a);
 
                     return;
                 }
@@ -253,7 +256,7 @@ NFCTag.prototype = {
                     self._data[17] = self._data[17] | rx[3];
                     self._data[18] = self._data[18] | rx[4];
                     self._data[19] = self._data[19] | rx[5];
-                    NRF.nfcSend(0x0A);
+                    NRF.nfcSend(0x0a);
 
                     return;
                 }
@@ -268,11 +271,11 @@ NFCTag.prototype = {
 
             //store data if it fits into memory
             if (idx > self._data.length) {
-                NRF.nfcSend(0x00);
+                NRF.nfcSend(staticResponses.nak.invalid_argument);
             } else {
                 const view = new Uint8Array(rx, 2, 4);
                 self._data.set(view, idx);
-                NRF.nfcSend(staticResponses.ack);
+                NRF.nfcSend(0x0a);
             }
 
             self.tagWritten = true;
@@ -283,7 +286,7 @@ NFCTag.prototype = {
         0x3a: function fastRead(rx, self) {
             // no need for a < 0 check, these are unsigned ints...
             if (rx[1] > rx[2] || rx[2] > 134) {
-                NRF.nfcSend(staticResponses.nak.argument);
+                NRF.nfcSend(staticResponses.nak.invalid_argument);
                 Debugger.debug(() => {
                     console.log("Invalid fast read command");
                 });
@@ -313,10 +316,8 @@ NFCTag.prototype = {
         },
         0x1b: function pwdAuth(rx, self) {
             if (self._info.password !== rx) {
-                NRF.nfcSend(self.pwdLockout ? staticResponses.nak.auth : staticResponses.nak.argument);
+                NRF.nfcSend(self.pwdLockout ? staticResponses.nak.auth_lockout : staticResponses.nak.invalid_argument);
                 console.log("Auth fail.");
-                console.log(rx);
-                console.log(self._info.password);
 
                 return;
             }
@@ -345,15 +346,18 @@ NFCTag.prototype = {
         if (data instanceof TagDataFile) {
             this.led = data.led;
             this.filename = data.filename;
-            this._data = data.buffer.buffer;
+            this._data = data.buffer;
             this.tagData = data;
         } else if (data instanceof TagData) {
             this.tagData = data;
-            this._data = data.buffer.buffer;
-        } else if (data instanceof Uint8Array) {
             this._data = data.buffer;
-        } else {
+        } else if (data instanceof Uint8Array) {
             this._data = data;
+        } else if (data instanceof ArrayBuffer) {
+            this._data = new Uint8Array(data);
+        } else {
+            const err = new Error("Invalid argument");
+            err.Data = { data };
         }
 
         // init card and fix bcc0 and bcc1 if needed
@@ -366,8 +370,12 @@ NFCTag.prototype = {
 };
 
 class TagData {
+    /**
+     *
+     * @param {Uint8Array} buffer
+     */
     constructor(buffer) {
-        this.buffer = buffer || new Uint8Array(580);
+        this.buffer = buffer || TagGen.generateData();
     }
 }
 
@@ -399,9 +407,9 @@ TagDataFile.prototype.save = function() {
 const tags = (function() {
     const leds = [
         { led: [LED1] },
-        { led: [LED1, LED2] },
-        { led: [LED2] },
-        { led: [LED2, LED3] },
+        // { led: [LED1, LED2] },
+        // { led: [LED2] },
+        // { led: [LED2, LED3] },
         { led: [LED3] }
     ];
 
@@ -425,14 +433,14 @@ NRF.on('NFCon', () => {
 });
 
 NRF.on('NFCoff', () => {
-    tag.deactivate();
+    setTimeout(() => tag.deactivate(), 0);
 });
 
 NRF.on('NFCrx', (rx) => {
     tag.receive(rx);
 });
 
-NFCLogger.attach(NRF);
+// NFCLogger.attach(NRF);
 
 setWatch(function() {
     tag.stop();
@@ -464,3 +472,5 @@ setWatch(function() {
 
     }, 200);
 }, BTN, { repeat: true, edge:"rising", debounce:50 });
+
+//process.on('uncaughtException', function(e) { console.log(e); });

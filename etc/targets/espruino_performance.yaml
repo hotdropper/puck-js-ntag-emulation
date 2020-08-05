@@ -2,3 +2,8 @@ inherit: espruino
 espruino:
   config:
     PRETOKENISE: true
+    MINIFICATION_Mangle: true
+    MODULE_MERGE: true
+#    MINIFICATION_LEVEL: ESPRIMA
+    MODULE_MINIFICATION_LEVEL: ESPRIMA
+#    ROLLUP: true

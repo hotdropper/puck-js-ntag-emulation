@@ -1,0 +1,5 @@
+inherit: espruino
+webpack:
+  output:
+    filename: bt.bundle.js
+src: [src/bt/*]

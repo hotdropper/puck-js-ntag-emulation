@@ -1,5 +1,9 @@
 export default class TagGen {
-    static wipeData(data) {
+    /**
+     *
+     * @param {Uint8Array} data
+     */
+    static wipe(data) {
         data.set([0x04,0x25,0x70,0xD9,0x6A,0x4B,0x68,0x81], 0);
         data.set([0xC8,0x48,0x00,0x00,0xE1,0x10,0x3E,0x00], 8);
         data.set([0x03,0x00,0xFE,0x00,0x00,0x00,0x00,0x00], 16);
@@ -21,9 +25,27 @@ export default class TagGen {
      *
      * @returns {Uint8Array}
      */
-    static generateData() {
+    static generate() {
         const newTagData = new Uint8Array(584);
-        this.wipeData(newTagData);
+        this.wipe(newTagData);
         return newTagData;
+    }
+
+    /**
+     *
+     * @param {NFCTag} tag
+     * @param {number} [bytesPerLine] Defaults to 4 bytes (a page).
+     */
+    static export(tag, bytesPerLine) {
+        bytesPerLine = bytesPerLine || 4
+        console.log('tag._data = new Uint8Array(584);');
+        console.log('var s = (i, d) => tag._data.set(d, i * 4);');
+        for (let i = 0; i < tag._data.length; i += bytesPerLine) {
+            const bytes = tag._data.slice(i, i + bytesPerLine);
+            const line = bytes.map(b => (b < 16 ? '0' : '') + b.toString(16)).join(', 0x');
+            console.log('s(' + i / 4 + ', [0x' + line + ']);');
+        }
+        console.log('delete s;');
+        console.log('tag.restart();');
     }
 }

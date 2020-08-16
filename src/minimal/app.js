@@ -25,9 +25,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-import NFCLogger from './libs/nfc-logger';
-import IdleDetector from './libs/idle-detector';
-import Debugger from './libs/debugger';
+// import NFCLogger from './libs/nfc-logger';
+// import IdleDetector from './libs/idle-detector';
+// import Debugger from './libs/debugger';
 import TagGen from "./libs/tag-gen";
 
 const staticResponses = {
@@ -294,26 +294,26 @@ class NFCTag {
         this._pages[0xFB] = new Uint8Array(this._data.buffer, 576, 4)
         this._pages[0xFC] = new Uint8Array(this._data.buffer, 580, 4)
 
-        Debugger.debug(() => {
-            console.log('password', this._info.password);
-            console.log('pack', this._responses.pack);
-            console.log('signature', this._responses.signature);
-            console.log('version', this._responses.version);
-        });
+        // Debugger.debug(() => {
+        //     console.log('password', this._info.password);
+        //     console.log('pack', this._responses.pack);
+        //     console.log('signature', this._responses.signature);
+        //     console.log('version', this._responses.version);
+        // });
     }
 
     _fixUid() {
         const bcc0 = this._data[0] ^ this._data[1] ^ this._data[2] ^ 0x88;
         const bcc1 = this._data[4] ^ this._data[5] ^ this._data[6] ^ this._data[7];
 
-        Debugger.debug(() => {
-            let uidBlock = "";
-            for (let i = 0; i < 9; i++) {
-                uidBlock += this._data[i].toString(16)+ " ";
-            }
-            console.log(uidBlock);
-            console.log(bcc0.toString(16) + " " + bcc1.toString(16));
-        });
+        // Debugger.debug(() => {
+        //     let uidBlock = "";
+        //     for (let i = 0; i < 9; i++) {
+        //         uidBlock += this._data[i].toString(16)+ " ";
+        //     }
+        //     console.log(uidBlock);
+        //     console.log(bcc0.toString(16) + " " + bcc1.toString(16));
+        // });
 
         if (this._data[3] !== bcc0 || this._data[8] !== bcc1) {
             this._data[3] = bcc0;
@@ -328,13 +328,22 @@ class NFCTag {
     }
 }
 
-const tagData = TagGen.generateData();
+const tagData = TagGen.generate();
 const tag = new NFCTag(LED1, tagData);
 
 // const idleMonitor = new IdleDetector('card watch',10000, () => {
 //     tag.restart();
 // });
 // idleMonitor.enable();
+
+const firstErrors = [];
+const lastErrors = [];
+const oldNfcSend = NRF.nfcSend;
+let lastNfcTx = null;
+NRF.nfcSend = function(tx) {
+    lastNfcTx = tx;
+    return oldNfcSend(tx);
+}
 
 function processRx(rx) {
     try {
@@ -348,6 +357,14 @@ function processRx(rx) {
     }
     catch (/** @var {Error} */e) {
         // NRF.nfcSend(staticResponses.nak.invalid_argument);
+        if (firstErrors.length < 5) {
+            firstErrors.push({ ex: e, rx, tx: lastNfcTx });
+        } else {
+            lastErrors.push({ ex: e, rx, tx: lastNfcTx });
+            if (lastErrors.length > 5) {
+                lastErrors.shift();
+            }
+        }
     }
     // idleMonitor.tick();
 }
@@ -356,20 +373,29 @@ NRF.on('NFCrx', (rx) => { processRx(rx); });
 
 tag.start();
 
+import ClickWatcher from "./libs/button";
+ClickWatcher(1000, {
+    1: () => {
+        tag.stop();
+        LED2.write(1);
+
+        tag._initCard();
+
+        setTimeout(function () {
+            tag.start();
+            LED2.write(0);
+        }, 200);
+    },
+    3: () => console.log('Rebooting...'),
+})
+
+function errors() {
+    return [].concat(firstErrors).concat(lastErrors);
+}
+
 // console.log(NFCLogger.attach.toString());
 // NFCLogger.attach(NRF);
-NFCLogger.stop();
+// NFCLogger.stop();
 
-setWatch(function() {
-    tag.stop();
-    LED2.write(1);
-
-    tag._initCard();
-
-    setTimeout(() => {
-        tag.start();
-        LED2.write(0);
-    }, 200);
-}, BTN, { repeat: true, edge:"rising", debounce:50 });
 
 //process.on('uncaughtException', function(e) { console.log(e); });

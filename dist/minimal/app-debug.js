@@ -1,387 +1,11 @@
 'use strict';
-/**
- * String.prototype.padStart() polyfill
- * https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
- * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padStart
- */
-
-if (!String.prototype.padStart) {
-  String.prototype.padStart = function padStart(targetLength, padString) {
-    targetLength = targetLength >> 0; //truncate if number or convert non-number to 0;
-
-    padString = String(typeof padString !== 'undefined' ? padString : ' ');
-
-    if (this.length > targetLength) {
-      return String(this);
-    } else {
-      targetLength = targetLength - this.length;
-
-      if (targetLength > padString.length) {
-        padString += padString.repeat(targetLength / padString.length); //append to original to ensure we are longer than needed
-      }
-
-      return padString.slice(0, targetLength) + String(this);
-    }
-  };
-}
-/**
- * String.prototype.padStart() polyfill
- * https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
- * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padEnd
- */
-
-
-if (!String.prototype.padEnd) {
-  String.prototype.padEnd = function padEnd(targetLength, padString) {
-    targetLength = targetLength >> 0; //floor if number or convert non-number to 0;
-
-    padString = String(typeof padString !== 'undefined' ? padString : ' ');
-
-    if (this.length > targetLength) {
-      return String(this);
-    } else {
-      targetLength = targetLength - this.length;
-
-      if (targetLength > padString.length) {
-        padString += padString.repeat(targetLength / padString.length); //append to original to ensure we are longer than needed
-      }
-
-      return String(this) + padString.slice(0, targetLength);
-    }
-  };
-}
-
-class IdleDetector {
-  constructor(name, whenIdleFor, doAction) {
-    this.name = name;
-    this.interval = whenIdleFor / 2;
-    this.doAction = doAction;
-    this.timeoutRef = null;
-    this.ticks = 0;
-    this.lastTick = null;
-    this.actionTick = 0;
-    this.enabled = false;
-  }
-
-  enable(interval) {
-    if (interval) {
-      this.interval = interval;
-    }
-
-    this.enabled = true;
-    this.registerTimeout();
-  }
-
-  disable() {
-    this.enabled = false;
-
-    if (this.timeoutRef) {
-      clearTimeout(this.timeoutRef);
-      this.timeoutRef = null;
-    }
-  }
-
-  tick() {
-    if (this.enabled) {
-      this.ticks++;
-    }
-  }
-
-  monitor() {
-    // console.log('monitor check', this.name);
-    if (this.lastTick !== this.ticks) {
-      this.lastTick = this.ticks;
-      return this.registerTimeout();
-    }
-
-    if (this.ticks !== this.actionTick) {
-      this.actionTick = this.ticks;
-      this.doAction();
-    }
-
-    return this.registerTimeout();
-  }
-
-  registerTimeout() {
-    var _this = this;
-
-    if (this.timeoutRef) {
-      return;
-    }
-
-    this.timeoutRef = setTimeout(function () {
-      _this.timeoutRef = null;
-
-      _this.monitor();
-    }, this.interval);
-  }
-
-}
-/**
- * @typedef {Function} getTime
- * @returns {number}
- */
-
-
-var MAX_ELEMENTS_PER_ROW = 16;
-var TABLE_PAD_MIDDLE = MAX_ELEMENTS_PER_ROW * 3 + 2;
-var TABLE_PAD_END = 15;
-var annotations = {
-  rx: {
-    0xA2: function (data) {
-      return 'WRITE(' + data[1].toString('16').padStart(2, '0') + ')';
-    },
-    0xA0: function (data) {
-      return 'COMP_WRITE(' + data[1].toString('16').padStart(2, '0') + ')';
-    },
-    0x1B: function () {
-      return 'PWD_AUTH';
-    },
-    0x30: function (data) {
-      return 'READ(' + data[1].toString('16').padStart(2, '0') + ')';
-    },
-    0x3C: function () {
-      return 'READ_SIG';
-    },
-    0x60: function () {
-      return 'GET_VERSION';
-    },
-    0x39: function (data) {
-      return 'READ_CNT(' + data[1].toString('16').padStart(2, '0') + ')';
-    },
-    0x3A: function (data) {
-      return 'FAST_READ(' + data[1].toString('16').padStart(2, '0') + ' => ' + data[2].toString('16').padStart(2, '0') + ')';
-    }
-  },
-  tx: {
-    0x00: function (data) {
-      return data.length === 0 ? 'NAK_INVALID_ARG' : null;
-    },
-    0x01: function (data) {
-      return data.length === 0 ? 'NAK_CRC' : null;
-    },
-    0x04: function (data) {
-      return data.length === 0 ? 'NAK_AUTH_LOCKOUT' : null;
-    },
-    0x05: function (data) {
-      return data.length === 0 ? 'NAK_EEPROM_ERROR' : null;
-    },
-    0x0A: function (data) {
-      return data.length === 0 ? 'ACK' : null;
-    }
-  }
-};
-
-class NFCLogger {
-  static attach() {
-    if (NFCLogger.attached === true) {
-      return;
-    }
-
-    NFCLogger.attached = true; // this might be kinda confusing, but best practice is:
-    // call attach() AFTER you have registered your primary handler
-    // that way your request/response gets priority, and logging
-    // comes afterwards. Unfortunately, this ALSO means that the logger
-    // ends up getting your /response/ before it gets the /transmission/
-    // so we store the response and then add it after the received data
-    // in our NFCrx handler.
-
-    NFCLogger.heldResponses = [];
-    /**
-     *
-     * @param {Uint8Array} data
-     */
-
-    NRF.nfcSend = function (data) {
-      // setTimeout(() => console.log('Sending', data), 250);
-      NFCLogger.originalNfcSend.call(NRF, data);
-
-      if (NFCLogger.tracking === false) {
-        return;
-      }
-
-      if (data instanceof Uint8Array) {
-        NFCLogger.heldResponses.push({
-          type: 'tx',
-          data: data
-        });
-      } else if (data instanceof Number) {
-        NFCLogger.heldResponses.push({
-          type: 'tx',
-          data: new Uint8Array([data])
-        });
-      } else {
-        NFCLogger.heldResponses.push({
-          type: 'tx',
-          data: new Uint8Array(0)
-        });
-      }
-
-      NFCLogger.idleDetector.tick();
-    };
-
-    NRF.on('NFCrx', function (rx) {
-      return NFCLogger._receive(rx);
-    });
-  }
-  /**
-   *
-   * @param {Uint8Array} rx
-   * @listens NRF~event:NFCrx
-   * @private
-   */
-
-
-  static _receive(rx) {
-    if (NFCLogger.tracking === false) {
-      return;
-    }
-
-    NFCLogger.log.push({
-      type: 'rx',
-      data: new Uint8Array(rx)
-    });
-
-    if (NFCLogger.heldResponses.length > 0) {
-      NFCLogger.log.push(NFCLogger.heldResponses.shift());
-    }
-
-    NFCLogger.idleDetector.tick();
-  }
-
-  static stop() {
-    NFCLogger.tracking = false;
-    NFCLogger.idleDetector.disable();
-  }
-
-  static start(timeout) {
-    NFCLogger.idleDetector.enable(timeout || 5000);
-    NFCLogger.tracking = true;
-  }
-
-  static _monitor() {
-    NFCLogger._printLogHeading();
-
-    NFCLogger.log.forEach(function (log) {
-      NFCLogger._printLogEntry(log);
-    });
-    NFCLogger.log = [];
-    NFCLogger.lastCount = NFCLogger.count;
-  }
-
-  static _printLogHeading() {
-    // let line = "Time |".padStart(TABLE_PAD_START, " ");
-    var line = " Src | ";
-    line += " Data ".padEnd(TABLE_PAD_MIDDLE, " ") + " |";
-    line += " Annotation";
-    console.log(line);
-    console.log("-".repeat(5) + "|-" + "-".repeat(TABLE_PAD_MIDDLE) + "-|" + "-".repeat(TABLE_PAD_END));
-  }
-  /**
-   *
-   * @param {LogEntry} logEntry
-   * @private
-   */
-
-
-  static _printLogEntry(logEntry) {
-    if (!logEntry.data) {
-      logEntry.data = new Uint8Array([]);
-    } // let line = Math.round(logEntry.time).toString().padEnd(1, " ").padStart(TABLE_PAD_START);
-
-
-    for (var i = 0; i < logEntry.data.length; i += MAX_ELEMENTS_PER_ROW) {
-      var line = " " + (i === 0 ? logEntry.type === 'rx' ? 'Rdr' : 'Tag' : '   ') + ' | ';
-      var chunk = [];
-      var end = i + MAX_ELEMENTS_PER_ROW;
-
-      if (end > logEntry.data.length) {
-        end = logEntry.data.length - i;
-      } else {
-        end = MAX_ELEMENTS_PER_ROW;
-      } // console.log({ i: i, end: end });
-
-
-      chunk = new Uint8Array(logEntry.data.buffer, logEntry.data.byteOffset + i, end); // chunk.forEach(c => console.log(JSON.stringify(c)));
-
-      var chunkStr = ' ';
-      chunk.forEach(function (c) {
-        chunkStr += c.toString(16).toUpperCase().padStart(2, '0') + ' ';
-      });
-      chunkStr = chunkStr.padEnd(TABLE_PAD_MIDDLE) + " |";
-      var annotation = annotations[logEntry.type][logEntry.data[0]] ? annotations[logEntry.type][logEntry.data[0]](logEntry.data) : null;
-
-      if (i === 0 && annotation) {
-        line += chunkStr + " " + annotation;
-      } else {
-        line += chunkStr;
-      }
-
-      console.log(line);
-    }
-  }
-
-}
-
-NFCLogger.originalNfcSend = NRF.nfcSend;
-NFCLogger.idleDetector = new IdleDetector('log watch', 5000, function () {
-  NFCLogger._monitor();
-});
-NFCLogger.tracking = false;
-/** @var {LogEntry[]} */
-
-NFCLogger.log = [];
-/** @var {LogEntry[]} */
-
-NFCLogger.heldResponses = [];
-
-class Debugger {
-  static debug(fn) {
-    if (this.isEnabled()) {
-      fn();
-    }
-  }
-
-  static isEnabled() {
-    return this.enabled === true;
-  }
-
-  static enable() {
-    this.enabled = true;
-  }
-
-  static disable() {
-    this.enabled = false;
-  }
-  /**
-   *
-   * @param {NFCTag} tag
-   * @param {number} bytesPerLine
-   */
-
-
-  static exportTag(tag, bytesPerLine) {
-    bytesPerLine = bytesPerLine || 16;
-    console.log('tag._data = new Uint8Array(584);');
-    console.log('var s = (i, d) => tag._data.set(d, i * 4);');
-
-    for (var i = 0; i < tag._data.length; i += bytesPerLine) {
-      var bytes = tag._data.slice(i, i + bytesPerLine);
-
-      var line = bytes.map(function (b) {
-        return b.toString(16).padStart(2, '0');
-      }).join(', 0x');
-      console.log('s(' + i / 4 + ', [0x' + line + ']);');
-    }
-
-    console.log('delete s;');
-    console.log('tag.restart();');
-  }
-
-}
 
 class TagGen {
-  static wipeData(data) {
+  /**
+   *
+   * @param {Uint8Array} data
+   */
+  static wipe(data) {
     data.set([0x04, 0x25, 0x70, 0xD9, 0x6A, 0x4B, 0x68, 0x81], 0);
     data.set([0xC8, 0x48, 0x00, 0x00, 0xE1, 0x10, 0x3E, 0x00], 8);
     data.set([0x03, 0x00, 0xFE, 0x00, 0x00, 0x00, 0x00, 0x00], 16);
@@ -406,12 +30,154 @@ class TagGen {
    */
 
 
-  static generateData() {
+  static generate() {
     var newTagData = new Uint8Array(584);
-    this.wipeData(newTagData);
+    this.wipe(newTagData);
     return newTagData;
   }
+  /**
+   *
+   * @param {NFCTag} tag
+   * @param {number} [bytesPerLine] Defaults to 4 bytes (a page).
+   */
 
+
+  static export(tag, bytesPerLine) {
+    bytesPerLine = bytesPerLine || 4;
+    console.log('tag._data = new Uint8Array(584);');
+    console.log('var s = (i, d) => tag._data.set(d, i * 4);');
+
+    for (var i = 0; i < tag._data.length; i += bytesPerLine) {
+      var bytes = tag._data.slice(i, i + bytesPerLine);
+
+      var line = bytes.map(function (b) {
+        return (b < 16 ? '0' : '') + b.toString(16);
+      }).join(', 0x');
+      console.log('s(' + i / 4 + ', [0x' + line + ']);');
+    }
+
+    console.log('delete s;');
+    console.log('tag.restart();');
+  }
+
+}
+
+class LedDancer {
+  /**
+   *
+   * @param {LED[]|LED} leds
+   * @param {number} interval
+   * @param {number} times
+   * @param {Function} [onComplete]
+   */
+  static dance(leds, interval, times, onComplete) {
+    if (leds instanceof Pin) {
+      leds = [leds];
+    }
+
+    var state = 0;
+    var count = 0;
+
+    var progress = function () {
+      state = Math.abs(state - 1);
+      leds.forEach(function (pin) {
+        return pin.write(state);
+      });
+
+      if (state === 1) {
+        count++;
+      }
+
+      if (count < times || state === 1) {
+        setTimeout(progress, interval);
+      } else if (onComplete) {
+        onComplete();
+      }
+    };
+
+    setTimeout(progress, interval);
+  }
+
+}
+/**
+ * @param {number} delayBetweenClicks
+ * @param {Object<number, Function>} actions
+ */
+
+
+function wireUp(delayBetweenClicks, actions) {
+  var leds = [LED1, LED2, LED3];
+  E.on('init', function () {
+    leds.forEach(function (p) {
+      return p.write(0);
+    });
+  });
+  /**
+   *
+   * @param {number} rebootAtCount
+   */
+
+  function rebootPuck(rebootAtCount) {
+    LedDancer.dance(leds, 1000, rebootAtCount, function () {
+      leds.forEach(function (p) {
+        return p.write(1);
+      });
+      E.reboot();
+    });
+  }
+
+  var lastClick = null;
+  var clickTimeout = null;
+  var buttonClicks = 0;
+  actions = actions || {};
+
+  if (actions[3]) {
+    if (actions[3] instanceof Array) {
+      actions[3].push(function () {
+        return rebootPuck(3);
+      });
+    } else {
+      actions[3] = [actions[3], function () {
+        return rebootPuck(3);
+      }];
+    }
+
+    console.log('Warning: the action(s) on 3 clicks will run just before the puck reboots.');
+  } else {
+    actions[3] = function () {
+      return rebootPuck(3);
+    };
+  }
+
+  var handleButtonClick = function () {
+    if (!actions[buttonClicks]) {
+      LedDancer.dance(leds, 250, 2);
+    } else if (actions[buttonClicks] instanceof Array) {
+      actions[buttonClicks].forEach(function (bc) {
+        return bc();
+      });
+    } else {
+      actions[buttonClicks]();
+    }
+
+    clickTimeout = null;
+    buttonClicks = 0;
+    lastClick = null;
+  };
+
+  setWatch(function () {
+    if (lastClick !== null && getTime() - lastClick < delayBetweenClicks) {
+      clearTimeout(clickTimeout);
+    }
+
+    buttonClicks++;
+    lastClick = getTime();
+    clickTimeout = setTimeout(handleButtonClick, delayBetweenClicks);
+  }, BTN, {
+    repeat: true,
+    edge: "rising",
+    debounce: 50
+  });
 }
 /* Copyright (c) 2020 Daniel Radtke. See the file LICENSE for copying permission. */
 
@@ -642,8 +408,6 @@ class NFCTag {
   }
 
   _initCard() {
-    var _this2 = this;
-
     this._dataChanged = false;
     LED3.write(0);
     this._info.uid = new Uint8Array([this._data[0], this._data[1], this._data[2], this._data[4], this._data[5], this._data[6], this._data[7]]);
@@ -696,30 +460,24 @@ class NFCTag {
     this._pages[0xFA] = new Uint8Array(this._data.buffer, 572, 4); // version piece 2 of 2
 
     this._pages[0xFB] = new Uint8Array(this._data.buffer, 576, 4);
-    this._pages[0xFC] = new Uint8Array(this._data.buffer, 580, 4);
-    Debugger.debug(function () {
-      console.log('password', _this2._info.password);
-      console.log('pack', _this2._responses.pack);
-      console.log('signature', _this2._responses.signature);
-      console.log('version', _this2._responses.version);
-    });
+    this._pages[0xFC] = new Uint8Array(this._data.buffer, 580, 4); // Debugger.debug(() => {
+    //     console.log('password', this._info.password);
+    //     console.log('pack', this._responses.pack);
+    //     console.log('signature', this._responses.signature);
+    //     console.log('version', this._responses.version);
+    // });
   }
 
   _fixUid() {
-    var _this3 = this;
-
     var bcc0 = this._data[0] ^ this._data[1] ^ this._data[2] ^ 0x88;
-    var bcc1 = this._data[4] ^ this._data[5] ^ this._data[6] ^ this._data[7];
-    Debugger.debug(function () {
-      var uidBlock = "";
-
-      for (var i = 0; i < 9; i++) {
-        uidBlock += _this3._data[i].toString(16) + " ";
-      }
-
-      console.log(uidBlock);
-      console.log(bcc0.toString(16) + " " + bcc1.toString(16));
-    });
+    var bcc1 = this._data[4] ^ this._data[5] ^ this._data[6] ^ this._data[7]; // Debugger.debug(() => {
+    //     let uidBlock = "";
+    //     for (let i = 0; i < 9; i++) {
+    //         uidBlock += this._data[i].toString(16)+ " ";
+    //     }
+    //     console.log(uidBlock);
+    //     console.log(bcc0.toString(16) + " " + bcc1.toString(16));
+    // });
 
     if (this._data[3] !== bcc0 || this._data[8] !== bcc1) {
       this._data[3] = bcc0;
@@ -733,11 +491,13 @@ class NFCTag {
 
 }
 
-var tagData = TagGen.generateData();
-var tag = new NFCTag(LED1, tagData); // const idleMonitor = new IdleDetector('card watch',10000, () => {
-//     tag.restart();
-// });
-// idleMonitor.enable();
+var tagData = TagGen.generate();
+var tag = new NFCTag(LED1, tagData);
+var oldNfcSend = NRF.nfcSend;
+
+NRF.nfcSend = function (tx) {
+  return oldNfcSend(tx);
+};
 
 function processRx(rx) {
   try {
@@ -750,30 +510,30 @@ function processRx(rx) {
     }
   } catch (
   /** @var {Error} */
-  e) {// NRF.nfcSend(staticResponses.nak.invalid_argument);
-  } // idleMonitor.tick();
+  e) {} // idleMonitor.tick();
 
 }
 
 NRF.on('NFCrx', function (rx) {
   processRx(rx);
 });
-tag.start(); // console.log(NFCLogger.attach.toString());
+tag.start();
+wireUp(1000, {
+  1: function () {
+    tag.stop();
+    LED2.write(1);
+
+    tag._initCard();
+
+    setTimeout(function () {
+      tag.start();
+      LED2.write(0);
+    }, 200);
+  },
+  3: function () {
+    return console.log('Rebooting...');
+  }
+}); // console.log(NFCLogger.attach.toString());
 // NFCLogger.attach(NRF);
-
-NFCLogger.stop();
-setWatch(function () {
-  tag.stop();
-  LED2.write(1);
-
-  tag._initCard();
-
-  setTimeout(function () {
-    tag.start();
-    LED2.write(0);
-  }, 200);
-}, BTN, {
-  repeat: true,
-  edge: "rising",
-  debounce: 50
-}); //process.on('uncaughtException', function(e) { console.log(e); });
+// NFCLogger.stop();
+//process.on('uncaughtException', function(e) { console.log(e); });

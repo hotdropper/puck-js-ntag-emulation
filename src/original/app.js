@@ -25,10 +25,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-import './libs/polyfills';
-import NFCLogger from './libs/nfc-logger';
 import Debugger from './libs/debugger';
 import TagGen from "./libs/tag-gen";
+const NFCLogger = require('NfcLogger');
 const Storage = require("Storage");
 
 const staticResponses = {

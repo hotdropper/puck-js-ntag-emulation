@@ -1,7 +1,10 @@
 # Port where mcu device is located
 espruino:
-  port: /dev/tty.usbserial-A50285BI
-  baud: 9600
+# for serial...
+#  port: /dev/tty.usbserial-A50285BI
+#  baud: 9600
+# for bt...
+  device: Puck.js
   board: PUCKJS
 #  output: test.js
 webpack:

@@ -10,6 +10,8 @@ const rollup = require('gulp-rollup');
 const nodeResolve = require('@rollup/plugin-node-resolve').nodeResolve;
 const rollupBabel = require('@rollup/plugin-babel').babel;
 const buildRollupConfig = require('rollup-plugin-espruino-modules').buildRollupConfig;
+const terser = require("rollup-plugin-terser").terser;
+const minify = require('gulp-minify');
 
 let config = {
   babel: require('./.babelrc.js'),
@@ -61,6 +63,14 @@ gulp.task('rollup', () => {
         },
       }))
       .pipe(babel(config.babel))
+      .pipe(minify({
+        ext:{
+          src:'-debug.js',
+          min:'.js'
+        },
+        mangle: true,
+        compress: {},
+      }))
       .pipe(gulp.dest('./dist/' + options.target));
 })
 
@@ -76,6 +86,10 @@ gulp.task('upload', (cb) => {
     args.push('-p ' + config.espruino.port);
   }
 
+  if (config.espruino.device) {
+    args.push('-d ' + config.espruino.device);
+  }
+
   if (config.espruino.baud) {
     args.push('-b ' + config.espruino.baud);
   }
@@ -88,10 +102,21 @@ gulp.task('upload', (cb) => {
     args.push('-n -o ' + config.espruino.output);
   }
 
+  if (config.espruino.modules) {
+    args.push('--storage ' + config.espruino.modules + ' --ohex output.hex');
+  }
+
   const argString = args.join(' ');
 
-  const cmd = `npx espruino ${argString} ${outFile}`;
+  const debugCmd = `npx espruino -n --minify ${argString} ${outFile} -o output.js`;
+  const cmd = `npx espruino --minify ${argString} ${outFile}`;
+  console.log('cmd', cmd);
   try {
+    exec(debugCmd, (err, stdout, stderr) => {
+      console.log(err);
+      console.log(stdout);
+      console.log(stderr);
+    });
     exec(cmd, (err, stdout, stderr) => {
       console.log(err);
       console.log(stdout);
@@ -104,6 +129,38 @@ gulp.task('upload', (cb) => {
   }
 });
 
+
+gulp.task('cli', (cb) => {
+  const args = [];
+
+  if (config.espruino.port) {
+    args.push('-p ' + config.espruino.port);
+  }
+
+  if (config.espruino.device) {
+    args.push('-d ' + config.espruino.device);
+  }
+
+  if (config.espruino.baud) {
+    args.push('-b ' + config.espruino.baud);
+  }
+
+  if (config.espruino.board) {
+    args.push('--board ' + config.espruino.board);
+  }
+
+  const argString = args.join(' ');
+
+  const cmd = `npx espruino ${argString}`;
+  console.log('cmd', cmd);
+  try {
+    exec(cmd, (err, stdout, stderr) => {
+      cb(err);
+    });
+  } catch (e) {
+    console.log(e);
+  }
+});
 
 gulp.task('default', gulp.series(['rollup', 'upload']));
 

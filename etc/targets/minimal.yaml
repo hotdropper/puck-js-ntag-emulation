@@ -1,0 +1,9 @@
+inherit: espruino_performance
+espruino:
+  config:
+    MINIFICATION_LEVEL: ESPRIMA
+#  modules: 'NfcLogr:dist/nfc-logger/app.js'
+webpack:
+  output:
+    filename: minimal.bundle.js
+src: src/minimal/app.js

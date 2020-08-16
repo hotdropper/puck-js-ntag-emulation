@@ -1,0 +1,10 @@
+inherit: espruino_performance
+espruino:
+  config:
+    SAVE_STORAGE_FILE: NfcLogger:NfcLogger.js
+    SAVE_ON_SEND: 0
+
+webpack:
+  output:
+    filename: nfc-logger.bundle.js
+src: src/nfc-logger/app.js
